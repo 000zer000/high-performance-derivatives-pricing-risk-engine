@@ -1,0 +1,6 @@
+add_executable(test_build_smoke test_build_smoke.cpp)
+target_compile_features(test_build_smoke PRIVATE cxx_std_20)
+target_link_libraries(test_build_smoke PRIVATE pricing_core)
+dpr_enable_warnings(test_build_smoke)
+
+add_test(NAME scaffold.build_smoke COMMAND test_build_smoke)

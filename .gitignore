@@ -1,0 +1,19 @@
+# CMake build directories
+/build/
+/build-*/
+/cmake-build-*/
+
+# Generated CMake files
+/compile_commands.json
+/CMakeUserPresets.json
+
+# Python environments and caches (future binding work)
+/.venv/
+__pycache__/
+*.py[cod]
+/.pytest_cache/
+
+# Editors and operating-system metadata
+/.idea/
+/.vscode/
+.DS_Store
