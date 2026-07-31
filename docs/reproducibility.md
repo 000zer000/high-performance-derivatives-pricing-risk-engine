@@ -1,41 +1,68 @@
 # Reproducibility
 
-## Current toolchain
+## Audited local toolchain
 
 - macOS 26.0.1;
 - Apple M1 arm64;
 - Apple Clang 15.0.0;
-- CMake and CTest 4.4.1.
+- CMake and CTest 4.4.1;
+- Release and Debug builds with project warnings treated as errors.
 
 Sensitive device identifiers are deliberately excluded.
 
-## v0.1.0 target contract
+## v0.1.0 contract
 
 - caller-supplied unsigned 64-bit seed;
 - one serial `std::mt19937_64` stream;
-- exact path count recorded;
-- compiler and standard-library environment recorded;
-- same seed and fixed toolchain reproduce the same result.
+- exact path count recorded in each result;
+- same seed, inputs, binary, compiler, and standard library reproduce the same
+  output;
+- no hidden wall-clock seed;
+- no parallel scheduling in v0.1.0.
 
-The C++ standard does not require `std::normal_distribution` to produce
-bitwise-identical sequences across different standard-library
-implementations. Cross-platform and thread-count-independent bitwise identity
-are not current claims.
+The C++ standard fixes the `std::mt19937_64` engine but does not require
+`std::normal_distribution` to map engine values identically across every
+standard-library implementation. Cross-platform bitwise equality is therefore
+not claimed.
 
-## Evidence still required
+## Verified local commands — 2026-07-31
 
-- exact compiler command lines when numerical implementation begins;
-- deterministic repeated-run output;
-- later benchmark protocol and raw results.
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug \
+  -DBUILD_TESTING=ON -DDPR_WARNINGS_AS_ERRORS=ON
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
 
-## Verified scaffold evidence — 2026-07-31
+cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTING=ON -DDPR_WARNINGS_AS_ERRORS=ON
+cmake --build build-release --parallel
+ctest --test-dir build-release --output-on-failure
+```
 
-- Debug and Release configurations generated successfully.
-- Both configurations built with warnings treated as errors.
-- The single scaffold smoke test passed in both configurations.
-- The placeholder CLI produced the same truthful status message in both configurations.
-- Generated build files remained outside the source tree and ignored by Git.
-- An isolated local clone of commit `a7f3fa1` passed the same Debug and Release checks.
-- A clean clone of public commit `3856c45` passed the same Debug and Release checks.
-- GitHub Actions run `30621709642` passed Ubuntu and macOS in Debug and Release.
-- This is build reproducibility evidence only, not numerical reproducibility evidence.
+Actual result: 36/36 CTest cases passed in each configuration.
+
+The Release Monte Carlo call command with 250,000 paths and seed 20,260,731
+was executed twice. Both complete `key=value` outputs were byte-for-byte
+identical. Its recorded result was:
+
+```text
+price=10.405958339551766
+standard_error=0.029309857309524682
+ci95_lower=10.348511019225098
+ci95_upper=10.463405659878434
+```
+
+## Toolchain portability observation
+
+Apple libc++ paired with the audited Apple Clang 15 installation does not
+provide floating-point `std::from_chars`. The first warning-clean CLI build
+failed at that call. Floating CLI arguments therefore use `std::strtod` with
+full-string and range checks; unsigned path counts and seeds still use integer
+`std::from_chars`.
+
+## Evidence still required after the local gate
+
+- CI for the implementation commit on Linux and macOS;
+- a build and test from a fresh public clone of the implementation;
+- multi-seed path-count convergence results;
+- later variance-reduction, Python, profiling, and OpenMP evidence.

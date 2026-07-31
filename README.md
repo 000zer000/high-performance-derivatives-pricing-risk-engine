@@ -1,40 +1,27 @@
 # High-Performance Derivatives Pricing & Risk Engine
 
-Status: **correctness-first scaffold**. Pricing, risk, Python bindings,
-parallelization, and performance benchmarks are not implemented or validated.
+Status: **v0.1.0 correctness-first release candidate**. The analytical and
+serial Monte Carlo European pricing scope is implemented and verified locally.
+CI and public clean-clone verification for this implementation are pending.
 
-This public project is intended to build inspectable quantitative-development
-evidence through tested numerical methods and measured performance. The words
-“high-performance” describe the target, not a current claim.
+The words “high-performance” describe the project roadmap, not a measured
+performance claim. Python bindings, Greeks, variance reduction, path-dependent
+options, profiling, OpenMP, and benchmarks remain explicitly deferred.
 
-## Current scaffold
+## Implemented v0.1.0 scope
 
-The repository currently provides:
+- C++20 static pricing library built with CMake;
+- Black–Scholes European call and put prices without dividends;
+- serial terminal-price Monte Carlo using `std::mt19937_64`;
+- caller-supplied seed and recorded path count;
+- sample standard error and two-sided 95% confidence interval;
+- tested zero-maturity and zero-volatility limits;
+- finite-value and domain validation with explicit exceptions;
+- Welford running mean/sample variance and merge operation;
+- analytical and Monte Carlo command-line interface;
+- named CTest cases and macOS/Linux GitHub Actions configuration.
 
-- a C++20 CMake project;
-- a reusable `pricing_core` target with implementation placeholders;
-- a `pricing_cli` executable that reports the scaffold status;
-- one build smoke test registered with CTest;
-- warning configuration for Apple Clang, Clang, GCC, and MSVC;
-- GitHub Actions configuration for macOS and Linux;
-- documentation and evidence-log placeholders.
-
-It does **not** currently provide an option price, Greek, confidence interval,
-Python interface, OpenMP implementation, error measurement, or benchmark.
-
-## Planned v0.1.0 scope
-
-- Black–Scholes analytical European call and put prices;
-- serial European Monte Carlo under geometric Brownian motion;
-- caller-supplied seed;
-- sample standard error and 95% confidence interval;
-- input validation;
-- automated correctness tests;
-- clean-clone documentation.
-
-All later features remain gated by correctness evidence.
-
-## Configure, build, and run the scaffold
+## Build and test
 
 Prerequisites:
 
@@ -42,32 +29,71 @@ Prerequisites:
 - a C++20 compiler.
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DBUILD_TESTING=ON -DDPR_WARNINGS_AS_ERRORS=ON
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
-./build/pricing_cli
 ```
 
-These scaffold commands were verified locally on 31 July 2026 in both Debug
-and Release configurations with compiler warnings treated as errors. The one
-registered smoke test passed in each configuration. This verifies only the
-build scaffold; it does not verify a pricing model.
+On 31 July 2026, 36/36 CTest cases passed locally in both Debug and
+Release with Apple Clang 15.0.0 and warnings treated as errors. This is not a
+coverage percentage and does not establish production readiness.
 
-The same configure, build, test, and CLI checks also passed from an isolated
-local clone of commit `a7f3fa1` and a clean clone of public commit `3856c45`.
-[GitHub Actions run 30621709642](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30621709642)
-passed all four macOS/Linux and Debug/Release matrix jobs. This remains build
-scaffold evidence only.
+## CLI examples
 
-## Evidence policy
+Analytical call:
 
-No numerical accuracy, test count, timing, variance reduction, speedup, or
-résumé claim is published until supported by saved commands and outputs.
-See [`docs/evidence_log.md`](docs/evidence_log.md).
+```bash
+./build/pricing_cli analytical call \
+  --spot 100 --strike 100 --rate 0.05 \
+  --volatility 0.20 --maturity 1
+```
+
+Serial Monte Carlo call:
+
+```bash
+./build/pricing_cli monte-carlo call \
+  --spot 100 --strike 100 --rate 0.05 \
+  --volatility 0.20 --maturity 1 \
+  --paths 250000 --seed 20260731
+```
+
+Use `./build/pricing_cli --help` for the complete argument contract. Output is
+printed as `key=value` lines and contains the model inputs and result metadata.
+
+## Recorded numerical check
+
+Frozen case: spot 100, strike 100, continuously compounded rate 0.05,
+volatility 0.20, maturity 1 year, 250,000 paths, seed 20,260,731.
+
+| Type | Analytical | Monte Carlo | Absolute error | Reported SE | Error / SE |
+|---|---:|---:|---:|---:|---:|
+| Call | 10.4505835722 | 10.4059583396 | 0.0446252326 | 0.0293098573 | 1.5225 |
+| Put | 5.5735260223 | 5.5710527462 | 0.0024732761 | 0.0173067440 | 0.1429 |
+
+The call interval was `[10.3485110192, 10.4634056599]`; the put interval was
+`[5.5371315281, 5.6049739643]`. These are actual fixed-seed observations, not
+promised accuracy. A multi-seed convergence study is required before making a
+general convergence or error claim.
+
+## Reproducibility boundary
+
+The same Release Monte Carlo call command produced byte-for-byte identical
+output when repeated on the audited toolchain. The C++ standard does not
+require `std::normal_distribution` to generate identical sequences across
+different standard-library implementations, so cross-platform bitwise
+reproducibility is not claimed.
+
+See:
+
+- [`docs/mathematics.md`](docs/mathematics.md) for formulas and assumptions;
+- [`docs/architecture.md`](docs/architecture.md) for component ownership;
+- [`docs/reproducibility.md`](docs/reproducibility.md) for the exact boundary;
+- [`docs/evidence_log.md`](docs/evidence_log.md) for claim status and evidence.
 
 ## Confidentiality
 
-This repository uses mathematical models and synthetic parameters only. It
+The repository uses mathematical models and synthetic parameters only. It
 contains no employer data, code, schema, credential, screenshot, or
 confidential business logic.
 

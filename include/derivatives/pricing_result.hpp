@@ -4,6 +4,7 @@
 
 namespace derivatives {
 
+/// Estimate, uncertainty, and reproducibility metadata from Monte Carlo pricing.
 struct MonteCarloResult {
     double price{};
     double standard_error{};
