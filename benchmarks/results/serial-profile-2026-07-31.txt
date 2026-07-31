@@ -1,0 +1,38 @@
+Serial profiling evidence
+Date: 2026-07-31
+Tool: /usr/bin/sample
+Hardware and Release toolchain: see 2026-07-31-apple-m1.txt
+
+Workload command
+build/release/serial_profile 3000000 128
+
+Profiler command
+sample serial_profile 5 -file /tmp/dpr_serial_profile_20260731.txt
+
+Workload output
+profile=serial_asian_antithetic
+paths=3000000
+monitoring_steps=128
+price=5.8069781344125149
+standard_error=0.0032200643784156837
+
+Raw profiler summary (top-of-stack counts from 3,766 sampled stacks)
+exp: 1417
+log: 719
+normal_draw: 337
+cos: 273
+
+The four named categories total 2,746 / 3,766 samples, or approximately
+72.9%. Additional unnamed top frames were inside libsystem_m. The complete
+temporary report also showed the call chain through price_asian_monte_carlo,
+the per-sample evaluator, normal_draw, and exp.
+
+Interpretation
+The measured serial workload is dominated by independent path/time-step math.
+This supports path-block parallelism. It does not show that every workload will
+scale, and it does not replace the separate repeated timing evidence.
+
+Privacy note
+The full macOS report was not committed because it contains process IDs, local
+paths, binary UUIDs, and unrelated system-image metadata. This committed
+extract preserves the raw relevant counts, commands, workload, and conclusion.

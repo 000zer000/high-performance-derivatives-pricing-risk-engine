@@ -1,92 +1,93 @@
 # Evidence Log
 
-Nothing is a résumé claim until its required code, tests, command output, and
-limitations are present. “Candidate” means implemented and locally tested but
-not through every release gate.
+Nothing is a résumé claim until its code, tests, measurements, documentation,
+public CI, and limitations are present. “Local candidate” means the local gates
+passed but public verification is still pending.
 
-| Candidate claim | Required evidence | Current evidence | Status |
-|---|---|---|---|
-| Configured a C++20 project with CMake | Warning-clean builds, CI, public clean clone | Local builds, four-job CI, and public clean clone pass at `80082f2` | Verified for v0.1 scope |
-| Implemented Black–Scholes European pricing | Source, derivation, independent references, boundaries, CI | Nine named cases pass locally and in four CI jobs; public clone passes | Verified for v0.1 scope |
-| Implemented reproducible serial European Monte Carlo | Source, seed/metadata/CI tests, error screen, CI | Nine named cases, repeated local output, four-job CI, and public clone pass | Verified within documented boundary |
-| Computed confidence intervals | Sample-variance/SE tests and interval formula test | Statistics and interval cases pass locally, in CI, and from public clone | Verified for implemented estimator |
-| Exposed C++ to Python | pybind11 source, clean install, Python tests | None | Locked |
-| Parallelized with OpenMP | Serial profile, correctness tests, raw fixed-hardware timings | None | Locked |
-| Achieved a measured speedup | Raw repeated timings and limitations | None | Locked |
+| Candidate claim | Evidence | Status |
+|---|---|---|
+| Built a C++20/CMake pricing library | `CMakeLists.txt`, warning-clean Debug/Release, CI workflow, 57 local C++ tests | Local candidate |
+| Implemented Black–Scholes European pricing | `src/black_scholes.cpp`, 9 analytical tests, independent Python reference, parity/boundaries | Local candidate |
+| Implemented analytical delta/gamma/vega | `src/greeks.cpp`, 5 tests including independent values and finite differences | Local candidate |
+| Priced European, arithmetic Asian, and down-and-out contracts with Monte Carlo | `src/monte_carlo.cpp`, validation, deterministic limits, seed and error-screen tests | Local candidate |
+| Reported standard errors and 95% intervals | Welford implementation/tests, interval formula test, 30-seed CSV and limitations | Local candidate |
+| Implemented antithetic variates | pair-average implementation, effective-sample test, frozen SE comparison, multi-seed results | Local candidate |
+| Implemented a justified control variate | analytical beta derivation, European-only validation, SE/error tests, multi-seed results | Local candidate |
+| Exposed C++ pricing to Python | `python/bindings.cpp`, 7 Python unittest methods inside the binding CTest | Local candidate |
+| Parallelized fixed path blocks with OpenMP | serial profile, fixed-order design, exact equality tests, OpenMP CLI/Python tests | Local candidate |
+| Measured a fixed-hardware speedup | five raw repetitions: 5.517x European and 5.505x Asian medians on Apple M1 | Local candidate |
+| Measured convergence/error | independent Python reference, 30 seeds x 4 path counts x 3 estimators, committed CSV | Local candidate |
+| Used sanitizers | local ASan+UBSan build, 59/59 tests, no reported finding | Local candidate |
 
-## 2026-07-31 — v0.1.0 local implementation verification
+## Local verification record — 2026-07-31
 
-### Repository state
+### Correctness
 
-- Feature commits:
-  - `6396760` — option validation and running statistics;
-  - `8fa240d` — Black–Scholes pricing;
-  - `7d4bceb` — serial seeded Monte Carlo;
-  - `bc37581` — analytical and Monte Carlo CLI.
-- Evidence commit: `80082f2` — formulas, commands, outputs, and limitations.
-- Build configuration: C++20, extensions disabled, warnings-as-errors enabled.
-- Local Debug CTest: 36/36 passed.
-- Local Release CTest: 36/36 passed.
-- GitHub Actions run `30624203320`: 36/36 passed in each of Ubuntu Debug,
-  Ubuntu Release, macOS Debug, and macOS Release.
-- Public clean clone of `80082f2`: Release build and 36/36 tests passed; both
-  README examples reproduced; generated files remained ignored.
+- Debug and Release C++/OpenMP builds were warning-clean.
+- 60/60 CTest cases passed in each C++ build.
+- The pybind11 Debug build passed 61/61 CTest cases, including seven Python
+  unittest methods.
+- The OpenMP-disabled ASan+UBSan build passed 59/59 CTest cases with no
+  sanitizer finding.
+- Serial and four-thread results matched exactly in European and 24-step Asian
+  tests because random draws and reduction order are fixed.
 
-### Analytical evidence
+Test counts are named invocations, not a coverage percentage and not proof of
+production readiness.
 
-Files and symbols:
+### Serial profile
 
-- `src/black_scholes.cpp` — `black_scholes_price`;
-- `tests/test_black_scholes.cpp` — nine named reference, parity, boundary, and
-  non-negativity cases;
-- `docs/mathematics.md` — assumptions, formula, Python recomputation command,
-  references, and tolerances.
+Command:
 
-Frozen analytical outputs:
-
-```text
-call=10.450583572185565
-put=5.5735260222569734
+```bash
+build/release/serial_profile 3000000 128
+sample serial_profile 5 -file /tmp/dpr_serial_profile_20260731.txt
 ```
 
-The put differs from the independently recorded Python value by approximately
-`2.7e-15`, far below the declared `1e-10` absolute tolerance.
+Of 3,766 stacks, 2,746 top frames (approximately 72.9%) were directly in
+`exp`, `log`, `cos`, or `normal_draw`; additional frames were inside the math
+library. This supports path-block parallelization. See the privacy-preserving
+raw extract in `benchmarks/results/serial-profile-2026-07-31.txt`.
 
-### Monte Carlo evidence
+### Fixed-hardware benchmark
 
-Files and symbols:
+Command:
 
-- `src/monte_carlo.cpp` — `price_european_monte_carlo`;
-- `src/running_statistics.cpp` — Welford update, sample variance, SE, merge;
-- `tests/test_monte_carlo.cpp` — seed, metadata, interval, boundary, and error
-  screens;
-- `tests/test_running_statistics.cpp` — four deterministic statistics cases.
+```bash
+build/release/pricing_benchmark 5000000 300000 64 5 8
+```
 
-Frozen inputs: spot 100, strike 100, rate 0.05, volatility 0.20, maturity 1,
-250,000 paths, seed 20,260,731.
+| Workload | Serial median | 8-thread median | Speedup | Same result |
+|---|---:|---:|---:|---|
+| European plain, 5M paths | 0.383474209 s | 0.069511125 s | 5.51673144x | yes |
+| Asian antithetic, 300k paths, 64 steps | 1.33612417 s | 0.242718041 s | 5.50484077x | yes |
 
-| Type | Price | Standard error | 95% interval | Absolute analytical error | Error / SE |
-|---|---:|---:|---:|---:|---:|
-| Call | 10.405958339551766 | 0.029309857309524682 | [10.348511019225098, 10.463405659878434] | 0.04462523263379836 | 1.5225332612 |
-| Put | 5.5710527461979824 | 0.017306743952028705 | [5.5371315280520061, 5.6049739643439587] | 0.0024732760589909475 | 0.1429082250 |
+Hardware: Apple M1, 8 cores, 8 GiB, macOS 26.0.1, Apple Clang 15.0.0,
+libomp 22.1.8. Every timed repetition is in
+`benchmarks/results/2026-07-31-apple-m1.txt`.
 
-The complete Release call output was identical in two consecutive executions
-on the audited toolchain.
+### Convergence observation
 
-### Limitations and safe wording
+Thirty fixed seeds were run at 2,000, 20,000, 200,000, and 2,000,000 paths for
+plain, antithetic, and control-variate estimators. Plain RMSE fell from
+`0.3486720073` to `0.0102551025`. At 2,000,000 paths, antithetic RMSE was
+`0.0078536772` and control-variate RMSE was `0.0045638660`.
 
-- This is one parameter case and one seed, not a convergence study.
-- A 95% interval is an estimator uncertainty statement, not a guarantee that
-  every interval contains the analytical value.
-- No timing was taken and no performance claim is unlocked.
-- `std::normal_distribution` prevents a cross-platform bitwise claim.
-- The v0.1.0 tag is created only after this verification update also passes CI.
+Observed interval coverage ranged from 83.3% to 100% across the twelve rows.
+Thirty trials are too few for a formal coverage claim, and the study covers
+one European call parameter set only.
 
-Safe wording supported by the verified v0.1.0 implementation:
+## Résumé wording gate
 
-> Implemented and tested Black–Scholes and reproducible serial Monte Carlo
-> pricing for no-dividend European calls and puts in C++20, including input
-> validation, standard errors, confidence intervals, CMake, CLI, and CI.
+After public CI, a public clean clone, and the `v1.0.0` tag pass, the evidence
+supports this narrow statement:
 
-This wording does not claim production readiness, general numerical accuracy,
-parallelism, Python integration, Greeks, or high performance.
+> Built a C++20 derivatives pricing engine with Black–Scholes analytics,
+> reproducible Monte Carlo for European, arithmetic-Asian, and discretely
+> monitored down-and-out options, pybind11 bindings, variance reduction, and
+> deterministic OpenMP block parallelism; measured 5.52x and 5.50x median
+> speedups on fixed 8-core Apple M1 workloads and validated numerical error in
+> a committed 30-seed study.
+
+Do not shorten this into “production pricing system,” “continuous barrier
+model,” “cross-platform bitwise reproducibility,” or an unqualified speedup.

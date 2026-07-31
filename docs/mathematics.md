@@ -1,18 +1,11 @@
 # Mathematics
 
-## Model assumptions
+## Assumptions
 
-v0.1.0 assumes:
-
-- no dividends;
-- constant continuously compounded risk-free rate `r`;
-- constant volatility `sigma`;
-- geometric Brownian motion under the risk-neutral measure;
-- European exercise at maturity `T`;
-- monetary calculations represented by `double`.
-
-`S` denotes spot and `K` strike. Spot and strike must be positive. Volatility
-and maturity must be non-negative. A finite negative rate is allowed.
+The model uses geometric Brownian motion under the risk-neutral measure with
+constant continuously compounded rate `r`, constant volatility `sigma`, no
+dividends, and `double` arithmetic. `S > 0`, `K > 0`, `sigma >= 0`, and
+`T >= 0`; finite negative rates are allowed.
 
 ## Black–Scholes price
 
@@ -26,106 +19,120 @@ call = S N(d1) - K exp(-rT) N(d2)
 put  = K exp(-rT) N(-d2) - S N(-d1)
 ```
 
-`N` is the standard-normal cumulative distribution function, implemented as:
+`N(x) = 0.5 erfc(-x / sqrt(2))`. The code evaluates `ln(S) - ln(K)` to avoid
+an unnecessary intermediate ratio. Expiry returns intrinsic value. At zero
+volatility, the discounted deterministic payoff is returned.
+
+Reference case `S=K=100`, `r=0.05`, `sigma=0.20`, `T=1`:
+
+- call: `10.450583572185565`;
+- put: `5.5735260222569707` from the independent Python reference;
+- put-call parity residual: `0` in that reference.
+
+## Analytical Greeks
+
+For positive `T` and `sigma`, with standard-normal density `phi`:
 
 ```text
-N(x) = 0.5 erfc(-x / sqrt(2))
+call delta = N(d1)
+put delta  = N(d1) - 1
+gamma      = phi(d1) / [S sigma sqrt(T)]
+vega       = S phi(d1) sqrt(T)
 ```
 
-The implementation evaluates `ln(S) - ln(K)` instead of `ln(S / K)` to avoid
-an avoidable intermediate ratio overflow or underflow.
+Vega is per unit volatility change, not per one percentage point. The public
+function rejects zero maturity or zero volatility because gamma/delta can be
+non-smooth at those boundaries. Tests use independent frozen values, call/put
+identities, and central finite differences of the independently implemented
+price function.
 
-At `T = 0`, price is intrinsic value. At `sigma = 0` and positive maturity,
-the discounted deterministic prices are:
+## Monte Carlo paths
+
+For a time increment `dt` and standard-normal draw `Z`:
 
 ```text
-call = max(S - K exp(-rT), 0)
-put  = max(K exp(-rT) - S, 0)
+S(t + dt) = S(t) exp[(r - 0.5 sigma^2) dt + sigma sqrt(dt) Z]
 ```
 
-The implementation also tests put–call parity:
+European pricing needs one terminal step. The arithmetic Asian average is:
 
 ```text
-call - put = S - K exp(-rT)
+A = (1 / m) sum[j=1..m] S(j T / m)
 ```
 
-## Risk-neutral terminal simulation
+The initial spot is not included. The down-and-out contract checks the initial
+spot and every one of `m` equally spaced future observations. If any monitored
+spot is less than or equal to the barrier, payoff is zero; rebate is zero.
 
-For an independent standard-normal draw `Z_i`:
+Every payoff is discounted by `exp(-rT)`. Discrete barrier monitoring creates
+a different product from a continuously monitored barrier and introduces
+monitoring bias if used as an approximation to the latter.
+
+## Sampling uncertainty
+
+Welford accumulators compute one-pass mean and sample variance with denominator
+`n-1`:
 
 ```text
-S_T(i) = S exp[(r - 0.5 sigma^2) T + sigma sqrt(T) Z_i]
+SE = sample_standard_deviation / sqrt(n)
+CI95 = estimate +/- 1.96 SE
 ```
 
-The discounted payoff sample is:
+For antithetic sampling, `n` is the number of independent pair averages, not
+the number of underlying paths. The interval describes Monte Carlo sampling
+uncertainty under a normal approximation. It excludes model, parameter, and
+time-discretization uncertainty.
+
+## Antithetic variates
+
+For every vector of normal draws `Z`, a second path uses `-Z`. One observation
+is the average of the two discounted payoffs:
 
 ```text
-Y_i = exp(-rT) max(S_T(i) - K, 0)  for a call
-Y_i = exp(-rT) max(K - S_T(i), 0)  for a put
+Y_pair = [Y(Z) + Y(-Z)] / 2
 ```
 
-With `n` paths, the Monte Carlo price is the sample mean:
+Tests and measurements compare the pair-average standard error against plain
+sampling for a frozen European call case. Variance reduction is case-dependent
+and is not guaranteed for every payoff and parameter set.
+
+## European stock control variate
+
+The control is discounted terminal stock:
 
 ```text
-price = (1 / n) sum(Y_i)
+X = exp(-rT) S_T
+E[X] = S
+Var[X] = S^2 [exp(sigma^2 T) - 1]
+Y_cv = Y - beta (X - S)
+beta = Cov(Y, X) / Var(X)
 ```
 
-## Sample uncertainty
+The implementation uses closed-form truncated lognormal moments for beta. Let
+`v = sigma sqrt(T)` and `P` be the Black–Scholes option price.
 
-Welford’s algorithm accumulates the sample mean and squared deviations in one
-pass. Sample variance uses Bessel’s correction:
+For a call:
 
 ```text
-s^2 = sum[(Y_i - mean)^2] / (n - 1)
-SE  = s / sqrt(n)
+E[YX] = S^2 exp(v^2) N(d1 + v) - K S exp(-rT) N(d1)
 ```
 
-The reported two-sided normal-approximation interval is:
+For a put:
 
 ```text
-[price - 1.96 SE, price + 1.96 SE]
+E[YX] = K S exp(-rT) N(-d1) - S^2 exp(v^2) N(-d1 - v)
 ```
 
-A correct estimator is not required to contain the analytical reference in
-every 95% interval. Fixed-seed tests instead require the observed error to be
-within four reported standard errors as a broad correctness screen.
+Then `Cov(Y,X) = E[YX] - P S`. Because beta is analytical rather than fitted
+on the pricing sample, the adjusted observations can use the ordinary sample
+variance formula. The method is intentionally rejected for Asian and barrier
+contracts; no unsupported beta is invented.
 
-## Independent analytical reference
+## Convergence experiment
 
-Reference inputs:
-
-- `S = 100`;
-- `K = 100`;
-- `r = 0.05`;
-- `sigma = 0.20`;
-- `T = 1`.
-
-An independent Python standard-library implementation produced:
-
-- `d1 = 0.35000000000000003`;
-- `d2 = 0.15000000000000002`;
-- call `10.450583572185565`;
-- put `5.5735260222569707`;
-- put–call parity residual `0`.
-
-Recomputation command:
-
-```bash
-python3 -c 'import math; s=100.; k=100.; r=.05; v=.20; t=1.; n=lambda x:.5*(1+math.erf(x/math.sqrt(2))); d1=(math.log(s/k)+(r+.5*v*v)*t)/(v*math.sqrt(t)); d2=d1-v*math.sqrt(t); c=s*n(d1)-k*math.exp(-r*t)*n(d2); p=k*math.exp(-r*t)*n(-d2)-s*n(-d1); print(d1,d2,c,p,c-p-(s-k*math.exp(-r*t)))'
-```
-
-The C++ tests use absolute tolerance `1e-10` for these independently recorded
-prices and `1e-12` for put–call parity.
-
-## Fixed-seed numerical observation
-
-For 250,000 paths and seed 20,260,731 on the audited Release toolchain:
-
-| Type | Analytical | Monte Carlo | Absolute error | SE | Error / SE |
-|---|---:|---:|---:|---:|---:|
-| Call | 10.450583572185565 | 10.405958339551766 | 0.04462523263379836 | 0.029309857309524682 | 1.5225332612 |
-| Put | 5.5735260222569734 | 5.5710527461979824 | 0.0024732760589909475 | 0.017306743952028705 | 0.1429082250 |
-
-This is one predeclared seed and one parameter case. It validates plumbing and
-the broad four-standard-error screen; it is not a convergence study or a
-general accuracy claim.
+[`experiments/convergence.py`](../experiments/convergence.py) independently
+computes the Black–Scholes reference with Python `math.erf`, runs 30 fixed seeds
+for each path count and estimator, and reports bias, RMSE, empirical standard
+deviation, mean reported SE, and interval coverage. The committed CSV is a
+finite numerical experiment, not a formal proof of convergence rate or exact
+95% coverage.

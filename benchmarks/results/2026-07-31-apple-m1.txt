@@ -1,0 +1,57 @@
+Fixed-hardware benchmark
+Date: 2026-07-31
+
+Hardware and toolchain
+- Processor: Apple M1
+- Architecture: arm64
+- Physical cores: 8
+- Logical cores: 8
+- Memory: 8589934592 bytes (8 GiB)
+- OS: macOS 26.0.1 (build 25A362)
+- Compiler: Apple Clang 15.0.0 (clang-1500.3.9.4)
+- CMake: 4.4.1
+- OpenMP runtime: libomp 22.1.8
+- Build type: Release
+- Compiler warnings treated as errors: yes
+
+Configure command
+cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DDPR_WARNINGS_AS_ERRORS=ON -DDPR_ENABLE_OPENMP=ON -DDPR_BUILD_BENCHMARKS=ON
+
+Benchmark command
+build/release/pricing_benchmark 5000000 300000 64 5 8
+
+Raw output
+clock=std::chrono::steady_clock
+repetitions=5
+requested_threads=8
+european_paths=5000000
+asian_paths=300000
+asian_monitoring_steps=64
+benchmark=european_plain
+numerical_results_equal=true
+price=10.4477086
+standard_error=0.00658028676
+threads_used=8
+serial_seconds=0.448454667,0.402272375,0.383474209,0.382266209,0.377352041
+parallel_seconds=0.079754875,0.069511125,0.071444459,0.069068417,0.069067417
+serial_median_seconds=0.383474209
+parallel_median_seconds=0.069511125
+median_speedup=5.51673144
+benchmark=asian_antithetic
+numerical_results_equal=true
+price=5.84692615
+standard_error=0.0102644072
+threads_used=8
+serial_seconds=1.35622017,1.33612417,1.31652717,1.39250854,1.31171821
+parallel_seconds=0.253555875,0.242718041,0.212705667,0.270348125,0.222993292
+serial_median_seconds=1.33612417
+parallel_median_seconds=0.242718041
+median_speedup=5.50484077
+
+Limitations
+- These are elapsed wall-clock measurements from one machine and one run date.
+- Five repetitions do not characterize every thermal or system-load condition.
+- The Asian serial warm-up/order shows visible variability; medians are reported.
+- No cloud-runner or cross-compiler speed claim is made.
+- Exact equality applies to these outputs because both execution policies use the
+  same path-indexed draws and fixed block-reduction order.

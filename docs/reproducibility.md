@@ -1,75 +1,59 @@
 # Reproducibility
 
-## Audited local toolchain
+## Random-draw contract
 
-- macOS 26.0.1;
-- Apple M1 arm64;
+The engine has no wall-clock seed and no shared mutable random stream. A draw
+is a pure function of caller seed, path index, and time-step index:
+
+1. SplitMix64-style integer mixing creates two 64-bit values;
+2. their upper 53 bits map to open-interval uniform values;
+3. Box–Muller produces a standard-normal value.
+
+Antithetic paths reuse the same addressed draw with the opposite sign.
+
+This makes path generation independent of OpenMP scheduling. The random stream
+is designed for reproducible simulation, not cryptography.
+
+## Reduction contract
+
+The independent observations are split into fixed blocks of 2,048. Values are
+added in ascending path order within a block using Welford statistics. OpenMP
+may compute blocks in any schedule, but completed block statistics are merged
+in ascending block order. Tests require exact equality of price, standard
+error, and interval bounds between serial and four-thread execution for both
+European and path-dependent cases.
+
+## Boundary of the claim
+
+The same inputs, binary, compiler, math library, and seed reproduce exactly the
+same result regardless of selected thread count. Cross-platform bitwise
+identity is not claimed: `exp`, `log`, `cos`, and related floating operations
+may differ across operating systems and libraries.
+
+Reproducibility also does not mean identical runtime. CPU load, thermal state,
+frequency scaling, and OpenMP runtime behavior affect timings.
+
+## Audited local environment
+
+- macOS 26.0.1, arm64;
+- Apple M1, 8 physical/logical cores, 8 GiB RAM;
 - Apple Clang 15.0.0;
-- CMake and CTest 4.4.1;
-- Release and Debug builds with project warnings treated as errors.
+- CMake/CTest 4.4.1;
+- Python 3.13.1;
+- libomp 22.1.8;
+- pybind11 3.0.4.
 
-Sensitive device identifiers are deliberately excluded.
+No hardware serial number, UUID, user email, or credential is recorded.
 
-## v0.1.0 contract
+## Verified local gates on 2026-07-31
 
-- caller-supplied unsigned 64-bit seed;
-- one serial `std::mt19937_64` stream;
-- exact path count recorded in each result;
-- same seed, inputs, binary, compiler, and standard library reproduce the same
-  output;
-- no hidden wall-clock seed;
-- no parallel scheduling in v0.1.0.
+- Debug C++/OpenMP: 60/60 CTest cases;
+- Release C++/OpenMP: 60/60 CTest cases;
+- Debug Python-enabled: 61/61 CTest cases;
+- Debug AddressSanitizer + UndefinedBehaviorSanitizer, OpenMP off: 59/59
+  CTest cases with no reported finding;
+- fixed-seed serial/OpenMP numerical equality tests passed;
+- benchmark and convergence commands completed and raw relevant outputs were
+  committed.
 
-The C++ standard fixes the `std::mt19937_64` engine but does not require
-`std::normal_distribution` to map engine values identically across every
-standard-library implementation. Cross-platform bitwise equality is therefore
-not claimed.
-
-## Verified local commands — 2026-07-31
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug \
-  -DBUILD_TESTING=ON -DDPR_WARNINGS_AS_ERRORS=ON
-cmake --build build --parallel
-ctest --test-dir build --output-on-failure
-
-cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release \
-  -DBUILD_TESTING=ON -DDPR_WARNINGS_AS_ERRORS=ON
-cmake --build build-release --parallel
-ctest --test-dir build-release --output-on-failure
-```
-
-Actual result: 36/36 CTest cases passed in each configuration.
-
-The Release Monte Carlo call command with 250,000 paths and seed 20,260,731
-was executed twice. Both complete `key=value` outputs were byte-for-byte
-identical. Its recorded result was:
-
-```text
-price=10.405958339551766
-standard_error=0.029309857309524682
-ci95_lower=10.348511019225098
-ci95_upper=10.463405659878434
-```
-
-## Toolchain portability observation
-
-Apple libc++ paired with the audited Apple Clang 15 installation does not
-provide floating-point `std::from_chars`. The first warning-clean CLI build
-failed at that call. Floating CLI arguments therefore use `std::strtod` with
-full-string and range checks; unsigned path counts and seeds still use integer
-`std::from_chars`.
-
-## Verified public gate — 2026-07-31
-
-- Commit `80082f2` passed [GitHub Actions run `30624203320`](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30624203320).
-- Ubuntu Debug, Ubuntu Release, macOS Debug, and macOS Release each passed
-  36/36 CTest cases.
-- A fresh clone from the public HTTPS URL configured and built Release with
-  warnings-as-errors, passed 36/36 tests, and reproduced both README examples.
-- Generated build files remained ignored and the public clone stayed Git-clean.
-
-## Evidence still required after v0.1.0
-
-- multi-seed path-count convergence results;
-- later variance-reduction, Python, profiling, and OpenMP evidence.
+Public CI and clean-clone results are added only after they actually pass.
