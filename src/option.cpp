@@ -43,4 +43,24 @@ void validate(const EuropeanOption& option)
     }
 }
 
+void validate(const AsianOption& option)
+{
+    validate(option.underlying);
+    if (option.monitoring_steps == 0U) {
+        throw std::invalid_argument("monitoring_steps must be greater than zero");
+    }
+}
+
+void validate(const DownAndOutOption& option)
+{
+    validate(option.underlying);
+    require_finite(option.barrier, "barrier");
+    if (option.barrier <= 0.0) {
+        throw std::invalid_argument("barrier must be greater than zero");
+    }
+    if (option.monitoring_steps == 0U) {
+        throw std::invalid_argument("monitoring_steps must be greater than zero");
+    }
+}
+
 }  // namespace derivatives
