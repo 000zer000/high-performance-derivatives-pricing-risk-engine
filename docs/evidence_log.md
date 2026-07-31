@@ -5,7 +5,7 @@ or benchmark is linked.
 
 | Candidate claim | Required evidence | Current evidence | Status |
 |---|---|---|---|
-| Configured a C++20 project with CMake | Debug and Release configure/build logs; clean clone | Local Debug/Release builds and scaffold smoke tests passed with warnings as errors on 2026-07-31; CI and clean clone pending | Candidate |
+| Configured a C++20 project with CMake | Debug and Release configure/build logs; clean clone | Local Debug/Release builds and scaffold smoke tests passed with warnings as errors on 2026-07-31; an isolated local clone of commit `a7f3fa1` passed the same checks; GitHub CI pending | Candidate |
 | Implemented Black–Scholes pricing | Source, derivation, independent reference tests | None | Locked |
 | Implemented Monte Carlo pricing | Source, seed tests, confidence-interval tests, error study | None | Locked |
 | Exposed C++ to Python | pybind11 source, clean install, Python tests | None | Locked |
@@ -39,5 +39,6 @@ Status: Locked/Candidate/Verified
 - Release build: passed without warnings.
 - Release CTest: the scaffold smoke test passed.
 - Release CLI: exited zero and reported that pricing is not implemented.
-- Limitations: no pricing, validation rules, RNG, statistics, numerical-error study, CI run, clean clone, or benchmark exists.
-- Status: Candidate. Public clean-clone and CI evidence are still required.
+- Isolated local clone: commit `a7f3fa1` configured, built, tested, and ran in Debug and Release; the generated build directories remained ignored.
+- Limitations: no pricing, validation rules, RNG, statistics, numerical-error study, GitHub CI run, public-remote clone, or benchmark exists.
+- Status: Candidate. A clone from the public remote and green GitHub CI evidence are still required.
