@@ -27,6 +27,35 @@ foreach(
     )
 endforeach()
 
+add_executable(test_monte_carlo test_monte_carlo.cpp)
+target_compile_features(test_monte_carlo PRIVATE cxx_std_20)
+target_link_libraries(test_monte_carlo PRIVATE pricing_core)
+dpr_enable_warnings(test_monte_carlo)
+
+foreach(
+    test_case
+    IN ITEMS
+        path_count_below_two
+        same_seed_same_fixed_toolchain_result
+        different_seed_changes_stream
+        result_records_seed_and_path_count
+        confidence_interval_formula
+        zero_maturity_matches_payoff
+        zero_volatility_matches_discounted_payoff
+        call_estimate_within_four_standard_errors
+        put_estimate_within_four_standard_errors
+)
+    if(test_case STREQUAL "path_count_below_two")
+        set(test_prefix monte_carlo_validation)
+    else()
+        set(test_prefix monte_carlo)
+    endif()
+    add_test(
+        NAME ${test_prefix}.${test_case}
+        COMMAND test_monte_carlo ${test_case}
+    )
+endforeach()
+
 add_executable(test_black_scholes test_black_scholes.cpp)
 target_compile_features(test_black_scholes PRIVATE cxx_std_20)
 target_link_libraries(test_black_scholes PRIVATE pricing_core)
