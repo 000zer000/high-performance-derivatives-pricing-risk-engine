@@ -56,4 +56,12 @@ No hardware serial number, UUID, user email, or credential is recorded.
 - benchmark and convergence commands completed and raw relevant outputs were
   committed.
 
-Public CI and clean-clone results are added only after they actually pass.
+## Public gates on 2026-07-31
+
+- Commit `7478e4e` passed
+  [GitHub Actions run 30630204334](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30630204334):
+  Ubuntu Debug/Release, macOS Debug/Release, and Ubuntu sanitizers all passed.
+- A fresh public clone built every Release C++, OpenMP, pybind11, test, and
+  benchmark target and passed 61/61 tests.
+- The clean clone reproduced analytical Greeks, a control-variate OpenMP price,
+  and Python analytical pricing, then remained Git-clean.

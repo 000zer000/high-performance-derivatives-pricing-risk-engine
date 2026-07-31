@@ -1,23 +1,22 @@
 # Evidence Log
 
 Nothing is a résumé claim until its code, tests, measurements, documentation,
-public CI, and limitations are present. “Local candidate” means the local gates
-passed but public verification is still pending.
+public CI, clean-clone verification, and limitations are present.
 
 | Candidate claim | Evidence | Status |
 |---|---|---|
-| Built a C++20/CMake pricing library | `CMakeLists.txt`, warning-clean Debug/Release, CI workflow, 57 local C++ tests | Local candidate |
-| Implemented Black–Scholes European pricing | `src/black_scholes.cpp`, 9 analytical tests, independent Python reference, parity/boundaries | Local candidate |
-| Implemented analytical delta/gamma/vega | `src/greeks.cpp`, 5 tests including independent values and finite differences | Local candidate |
-| Priced European, arithmetic Asian, and down-and-out contracts with Monte Carlo | `src/monte_carlo.cpp`, validation, deterministic limits, seed and error-screen tests | Local candidate |
-| Reported standard errors and 95% intervals | Welford implementation/tests, interval formula test, 30-seed CSV and limitations | Local candidate |
-| Implemented antithetic variates | pair-average implementation, effective-sample test, frozen SE comparison, multi-seed results | Local candidate |
-| Implemented a justified control variate | analytical beta derivation, European-only validation, SE/error tests, multi-seed results | Local candidate |
-| Exposed C++ pricing to Python | `python/bindings.cpp`, 7 Python unittest methods inside the binding CTest | Local candidate |
-| Parallelized fixed path blocks with OpenMP | serial profile, fixed-order design, exact equality tests, OpenMP CLI/Python tests | Local candidate |
-| Measured a fixed-hardware speedup | five raw repetitions: 5.517x European and 5.505x Asian medians on Apple M1 | Local candidate |
-| Measured convergence/error | independent Python reference, 30 seeds x 4 path counts x 3 estimators, committed CSV | Local candidate |
-| Used sanitizers | local ASan+UBSan build, 59/59 tests, no reported finding | Local candidate |
+| Built a C++20/CMake pricing library | `CMakeLists.txt`, warning-clean Debug/Release, CI workflow, 60 local C++ tests | Verified for v1.0 scope |
+| Implemented Black–Scholes European pricing | `src/black_scholes.cpp`, 9 analytical tests, independent Python reference, parity/boundaries | Verified for v1.0 scope |
+| Implemented analytical delta/gamma/vega | `src/greeks.cpp`, 5 tests including independent values and finite differences | Verified for v1.0 scope |
+| Priced European, arithmetic Asian, and down-and-out contracts with Monte Carlo | `src/monte_carlo.cpp`, validation, deterministic limits, seed and error-screen tests | Verified for v1.0 scope |
+| Reported standard errors and 95% intervals | Welford implementation/tests, interval formula test, 30-seed CSV and limitations | Verified for v1.0 scope |
+| Implemented antithetic variates | pair-average implementation, effective-sample test, frozen SE comparison, multi-seed results | Verified for v1.0 scope |
+| Implemented a justified control variate | analytical beta derivation, European-only validation, SE/error tests, multi-seed results | Verified for v1.0 scope |
+| Exposed C++ pricing to Python | `python/bindings.cpp`, 7 Python unittest methods inside the binding CTest | Verified for v1.0 scope |
+| Parallelized fixed path blocks with OpenMP | serial profile, fixed-order design, exact equality tests, OpenMP CLI/Python tests | Verified for v1.0 scope |
+| Measured a fixed-hardware speedup | five raw repetitions: 5.517x European and 5.505x Asian medians on Apple M1 | Verified on recorded hardware |
+| Measured convergence/error | independent Python reference, 30 seeds x 4 path counts x 3 estimators, committed CSV | Verified for recorded experiment |
+| Used sanitizers | local ASan+UBSan build, 59/59 tests, no reported finding | Verified for tested paths |
 
 ## Local verification record — 2026-07-31
 
@@ -79,8 +78,8 @@ one European call parameter set only.
 
 ## Résumé wording gate
 
-After public CI, a public clean clone, and the `v1.0.0` tag pass, the evidence
-supports this narrow statement:
+The local gates, public CI, and public clean clone support this narrow
+statement:
 
 > Built a C++20 derivatives pricing engine with Black–Scholes analytics,
 > reproducible Monte Carlo for European, arithmetic-Asian, and discretely
@@ -91,3 +90,14 @@ supports this narrow statement:
 
 Do not shorten this into “production pricing system,” “continuous barrier
 model,” “cross-platform bitwise reproducibility,” or an unqualified speedup.
+
+## Public verification — 2026-07-31
+
+- Commit `7478e4e` passed
+  [GitHub Actions run 30630204334](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30630204334).
+- Successful jobs: Ubuntu Debug, Ubuntu Release, macOS Debug, macOS Release,
+  and Ubuntu AddressSanitizer/UndefinedBehaviorSanitizer.
+- A fresh public HTTPS clone of `7478e4e` configured Release with OpenMP,
+  pybind11, tests, and benchmarks; built all targets; passed 61/61 tests;
+  reproduced analytical Greeks, a control-variate eight-thread price, and the
+  Python analytical price; and remained Git-clean.

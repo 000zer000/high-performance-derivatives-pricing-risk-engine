@@ -1,8 +1,8 @@
 # High-Performance Derivatives Pricing & Risk Engine
 
-Status: **v1.0.0 release candidate**. The complete scope below is implemented
-and locally verified. Public CI and clean-clone verification are the remaining
-release gates.
+Status: **v1.0.0 verified release scope**. The complete scope below passed
+local Debug, Release, Python, sanitizer, public CI, and public clean-clone
+gates. Measurements and limitations are committed with the code.
 
 A correctness-first C++20 pricing engine that connects quantitative finance,
 statistical validation, reproducible simulation, Python interoperability, and
@@ -41,6 +41,12 @@ The timings apply only to the recorded machine and commands. The Asian timings
 showed visible run-to-run variability. See
 [`benchmarks/results/2026-07-31-apple-m1.txt`](benchmarks/results/2026-07-31-apple-m1.txt)
 for every repetition and limitation.
+
+[GitHub Actions run 30630204334](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30630204334)
+passed Ubuntu Debug, Ubuntu Release, macOS Debug, macOS Release, and Ubuntu
+sanitizer jobs at commit `7478e4e`. A fresh public clone of that commit built
+all C++, OpenMP, Python, and benchmark targets, passed 61/61 tests, reproduced
+representative CLI/Python outputs, and remained Git-clean.
 
 In the 30-seed European call study, plain-estimator RMSE fell from `0.348672`
 at 2,000 paths to `0.010255` at 2,000,000 paths. At 2,000,000 paths, observed
