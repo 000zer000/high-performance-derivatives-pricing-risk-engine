@@ -27,6 +27,76 @@ foreach(
     )
 endforeach()
 
+add_test(NAME cli.help COMMAND pricing_cli --help)
+set_tests_properties(cli.help PROPERTIES PASS_REGULAR_EXPRESSION "Usage:")
+
+add_test(
+    NAME cli.valid_analytical
+    COMMAND
+        pricing_cli analytical call
+        --spot 100
+        --strike 100
+        --rate 0.05
+        --volatility 0.20
+        --maturity 1
+)
+set_tests_properties(
+    cli.valid_analytical
+    PROPERTIES PASS_REGULAR_EXPRESSION "model=black_scholes"
+)
+
+add_test(
+    NAME cli.valid_monte_carlo
+    COMMAND
+        pricing_cli monte-carlo put
+        --spot 100
+        --strike 100
+        --rate 0.05
+        --volatility 0.20
+        --maturity 1
+        --paths 1000
+        --seed 42
+)
+set_tests_properties(
+    cli.valid_monte_carlo
+    PROPERTIES PASS_REGULAR_EXPRESSION "standard_error="
+)
+
+add_test(
+    NAME cli.invalid_option_type
+    COMMAND
+        pricing_cli analytical straddle
+        --spot 100
+        --strike 100
+        --rate 0.05
+        --volatility 0.20
+        --maturity 1
+)
+set_tests_properties(cli.invalid_option_type PROPERTIES WILL_FAIL TRUE)
+
+add_test(
+    NAME cli.invalid_numeric_input
+    COMMAND
+        pricing_cli analytical call
+        --spot not-a-number
+        --strike 100
+        --rate 0.05
+        --volatility 0.20
+        --maturity 1
+)
+set_tests_properties(cli.invalid_numeric_input PROPERTIES WILL_FAIL TRUE)
+
+add_test(
+    NAME cli.missing_required_argument
+    COMMAND
+        pricing_cli analytical call
+        --spot 100
+        --strike 100
+        --rate 0.05
+        --volatility 0.20
+)
+set_tests_properties(cli.missing_required_argument PROPERTIES WILL_FAIL TRUE)
+
 add_executable(test_monte_carlo test_monte_carlo.cpp)
 target_compile_features(test_monte_carlo PRIVATE cxx_std_20)
 target_link_libraries(test_monte_carlo PRIVATE pricing_core)
