@@ -6,10 +6,10 @@ not through every release gate.
 
 | Candidate claim | Required evidence | Current evidence | Status |
 |---|---|---|---|
-| Configured a C++20 project with CMake | Warning-clean builds, CI, public clean clone | Scaffold CI and public clone verified; implementation CI/clone pending | Candidate update |
-| Implemented Black–Scholes European pricing | Source, derivation, independent references, boundaries, CI | Source and nine named local cases pass in Debug/Release; implementation CI pending | Candidate |
-| Implemented reproducible serial European Monte Carlo | Source, seed/metadata/CI tests, error screen, CI | Source and nine named local cases pass; repeated Release output identical; implementation CI pending | Candidate |
-| Computed confidence intervals | Sample-variance/SE tests and interval formula test | Known-sample statistics, merge, SE, and interval tests pass locally | Candidate |
+| Configured a C++20 project with CMake | Warning-clean builds, CI, public clean clone | Local builds, four-job CI, and public clean clone pass at `80082f2` | Verified for v0.1 scope |
+| Implemented Black–Scholes European pricing | Source, derivation, independent references, boundaries, CI | Nine named cases pass locally and in four CI jobs; public clone passes | Verified for v0.1 scope |
+| Implemented reproducible serial European Monte Carlo | Source, seed/metadata/CI tests, error screen, CI | Nine named cases, repeated local output, four-job CI, and public clone pass | Verified within documented boundary |
+| Computed confidence intervals | Sample-variance/SE tests and interval formula test | Statistics and interval cases pass locally, in CI, and from public clone | Verified for implemented estimator |
 | Exposed C++ to Python | pybind11 source, clean install, Python tests | None | Locked |
 | Parallelized with OpenMP | Serial profile, correctness tests, raw fixed-hardware timings | None | Locked |
 | Achieved a measured speedup | Raw repeated timings and limitations | None | Locked |
@@ -23,10 +23,14 @@ not through every release gate.
   - `8fa240d` — Black–Scholes pricing;
   - `7d4bceb` — serial seeded Monte Carlo;
   - `bc37581` — analytical and Monte Carlo CLI.
+- Evidence commit: `80082f2` — formulas, commands, outputs, and limitations.
 - Build configuration: C++20, extensions disabled, warnings-as-errors enabled.
 - Local Debug CTest: 36/36 passed.
 - Local Release CTest: 36/36 passed.
-- CI/public clean clone: pending for these implementation commits.
+- GitHub Actions run `30624203320`: 36/36 passed in each of Ubuntu Debug,
+  Ubuntu Release, macOS Debug, and macOS Release.
+- Public clean clone of `80082f2`: Release build and 36/36 tests passed; both
+  README examples reproduced; generated files remained ignored.
 
 ### Analytical evidence
 
@@ -76,9 +80,9 @@ on the audited toolchain.
   every interval contains the analytical value.
 - No timing was taken and no performance claim is unlocked.
 - `std::normal_distribution` prevents a cross-platform bitwise claim.
-- CI and a public clean clone for the implementation are still required.
+- The v0.1.0 tag is created only after this verification update also passes CI.
 
-Safe wording after the remaining v0.1.0 gates pass:
+Safe wording supported by the verified v0.1.0 implementation:
 
 > Implemented and tested Black–Scholes and reproducible serial Monte Carlo
 > pricing for no-dividend European calls and puts in C++20, including input

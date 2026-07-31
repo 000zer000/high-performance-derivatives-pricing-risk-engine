@@ -1,8 +1,8 @@
 # High-Performance Derivatives Pricing & Risk Engine
 
-Status: **v0.1.0 correctness-first release candidate**. The analytical and
-serial Monte Carlo European pricing scope is implemented and verified locally.
-CI and public clean-clone verification for this implementation are pending.
+Status: **v0.1.0 correctness-first MVP**. The analytical and serial Monte
+Carlo European pricing scope is implemented and verified locally, in CI, and
+from a public clean clone.
 
 The words “high-performance” describe the project roadmap, not a measured
 performance claim. Python bindings, Greeks, variance reduction, path-dependent
@@ -38,6 +38,11 @@ ctest --test-dir build --output-on-failure
 On 31 July 2026, 36/36 CTest cases passed locally in both Debug and
 Release with Apple Clang 15.0.0 and warnings treated as errors. This is not a
 coverage percentage and does not establish production readiness.
+
+[GitHub Actions run 30624203320](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30624203320)
+passed 36/36 tests in each of Ubuntu Debug, Ubuntu Release, macOS Debug, and
+macOS Release for commit `80082f2`. A fresh public clone of that commit also
+passed the documented Release build, 36/36 tests, and both CLI examples.
 
 ## CLI examples
 

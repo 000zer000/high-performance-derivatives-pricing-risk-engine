@@ -60,9 +60,16 @@ failed at that call. Floating CLI arguments therefore use `std::strtod` with
 full-string and range checks; unsigned path counts and seeds still use integer
 `std::from_chars`.
 
-## Evidence still required after the local gate
+## Verified public gate — 2026-07-31
 
-- CI for the implementation commit on Linux and macOS;
-- a build and test from a fresh public clone of the implementation;
+- Commit `80082f2` passed [GitHub Actions run `30624203320`](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30624203320).
+- Ubuntu Debug, Ubuntu Release, macOS Debug, and macOS Release each passed
+  36/36 CTest cases.
+- A fresh clone from the public HTTPS URL configured and built Release with
+  warnings-as-errors, passed 36/36 tests, and reproduced both README examples.
+- Generated build files remained ignored and the public clone stayed Git-clean.
+
+## Evidence still required after v0.1.0
+
 - multi-seed path-count convergence results;
 - later variance-reduction, Python, profiling, and OpenMP evidence.
