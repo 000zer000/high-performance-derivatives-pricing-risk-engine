@@ -27,6 +27,30 @@ foreach(
     )
 endforeach()
 
+add_executable(test_black_scholes test_black_scholes.cpp)
+target_compile_features(test_black_scholes PRIVATE cxx_std_20)
+target_link_libraries(test_black_scholes PRIVATE pricing_core)
+dpr_enable_warnings(test_black_scholes)
+
+foreach(
+    test_case
+    IN ITEMS
+        reference_call
+        reference_put
+        put_call_parity
+        zero_maturity_call
+        zero_maturity_put
+        zero_volatility
+        negative_rate_is_supported
+        call_nonnegative
+        put_nonnegative
+)
+    add_test(
+        NAME black_scholes.${test_case}
+        COMMAND test_black_scholes ${test_case}
+    )
+endforeach()
+
 add_executable(test_running_statistics test_running_statistics.cpp)
 target_compile_features(test_running_statistics PRIVATE cxx_std_20)
 target_link_libraries(test_running_statistics PRIVATE pricing_core)
