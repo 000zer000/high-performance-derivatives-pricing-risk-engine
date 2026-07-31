@@ -54,8 +54,10 @@ registered smoke test passed in each configuration. This verifies only the
 build scaffold; it does not verify a pricing model.
 
 The same configure, build, test, and CLI checks also passed from an isolated
-local clone of commit `a7f3fa1`. A clean clone from the future public GitHub
-remote and a GitHub Actions run are still pending.
+local clone of commit `a7f3fa1` and a clean clone of public commit `3856c45`.
+[GitHub Actions run 30621709642](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30621709642)
+passed all four macOS/Linux and Debug/Release matrix jobs. This remains build
+scaffold evidence only.
 
 ## Evidence policy
 

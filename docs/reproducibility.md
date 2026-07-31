@@ -26,8 +26,6 @@ are not current claims.
 
 - exact compiler command lines when numerical implementation begins;
 - deterministic repeated-run output;
-- clean-clone output from the public GitHub remote;
-- a green GitHub Actions run;
 - later benchmark protocol and raw results.
 
 ## Verified scaffold evidence — 2026-07-31
@@ -38,4 +36,6 @@ are not current claims.
 - The placeholder CLI produced the same truthful status message in both configurations.
 - Generated build files remained outside the source tree and ignored by Git.
 - An isolated local clone of commit `a7f3fa1` passed the same Debug and Release checks.
+- A clean clone of public commit `3856c45` passed the same Debug and Release checks.
+- GitHub Actions run `30621709642` passed Ubuntu and macOS in Debug and Release.
 - This is build reproducibility evidence only, not numerical reproducibility evidence.

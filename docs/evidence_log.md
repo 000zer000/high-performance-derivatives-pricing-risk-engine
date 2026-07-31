@@ -5,7 +5,7 @@ or benchmark is linked.
 
 | Candidate claim | Required evidence | Current evidence | Status |
 |---|---|---|---|
-| Configured a C++20 project with CMake | Debug and Release configure/build logs; clean clone | Local Debug/Release builds and scaffold smoke tests passed with warnings as errors on 2026-07-31; an isolated local clone of commit `a7f3fa1` passed the same checks; GitHub CI pending | Candidate |
+| Configured a C++20 project with CMake | Debug and Release configure/build logs; clean clone | Local and public-clean-clone Debug/Release checks passed; CI run `30621709642` passed four macOS/Linux matrix jobs on 2026-07-31 | Verified for scaffold only |
 | Implemented Black–Scholes pricing | Source, derivation, independent reference tests | None | Locked |
 | Implemented Monte Carlo pricing | Source, seed tests, confidence-interval tests, error study | None | Locked |
 | Exposed C++ to Python | pybind11 source, clean install, Python tests | None | Locked |
@@ -40,5 +40,7 @@ Status: Locked/Candidate/Verified
 - Release CTest: the scaffold smoke test passed.
 - Release CLI: exited zero and reported that pricing is not implemented.
 - Isolated local clone: commit `a7f3fa1` configured, built, tested, and ran in Debug and Release; the generated build directories remained ignored.
-- Limitations: no pricing, validation rules, RNG, statistics, numerical-error study, GitHub CI run, public-remote clone, or benchmark exists.
-- Status: Candidate. A clone from the public remote and green GitHub CI evidence are still required.
+- Public clone: commit `3856c45` configured, built, tested, and ran in Debug and Release from the public HTTPS URL; generated build directories remained ignored.
+- GitHub Actions: [run `30621709642`](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30621709642) passed Ubuntu Debug, Ubuntu Release, macOS Debug, and macOS Release jobs for commit `3856c45`.
+- Limitations: no pricing, completed validation rules, RNG, statistics, numerical-error study, or benchmark exists.
+- Status: Verified for the build scaffold only. No quantitative-development claim is unlocked.
