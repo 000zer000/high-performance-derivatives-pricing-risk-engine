@@ -48,6 +48,12 @@ sanitizer jobs at commit `7478e4e`. A fresh public clone of that commit built
 all C++, OpenMP, Python, and benchmark targets, passed 61/61 tests, reproduced
 representative CLI/Python outputs, and remained Git-clean.
 
+The versioned `v1.0.0` release also passed the complete five-job matrix in
+[GitHub Actions run 30630544170](https://github.com/000zer000/high-performance-derivatives-pricing-risk-engine/actions/runs/30630544170).
+The earlier run remains linked because it is the revision used for the recorded
+independent clean-clone verification; the tag run verifies the released
+revision itself.
+
 In the 30-seed European call study, plain-estimator RMSE fell from `0.348672`
 at 2,000 paths to `0.010255` at 2,000,000 paths. At 2,000,000 paths, observed
 RMSE was `0.007854` with antithetic sampling and `0.004564` with the control
@@ -163,7 +169,9 @@ python3 experiments/convergence.py \
 Read the claim-by-claim status in [`docs/evidence_log.md`](docs/evidence_log.md),
 formulas in [`docs/mathematics.md`](docs/mathematics.md), architecture in
 [`docs/architecture.md`](docs/architecture.md), and reproducibility contract in
-[`docs/reproducibility.md`](docs/reproducibility.md).
+[`docs/reproducibility.md`](docs/reproducibility.md). Use
+[`docs/project-defense.md`](docs/project-defense.md) to prepare a complete
+technical and interview defense of the released system.
 
 ## Confidentiality
 
