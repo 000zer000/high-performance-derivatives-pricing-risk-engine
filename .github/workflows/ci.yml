@@ -57,6 +57,51 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  benchmark-smoke:
+    name: ubuntu-benchmark-smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Select Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Configure release benchmark build
+        run: |
+          cmake -S . -B build-benchmark \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DDPR_WARNINGS_AS_ERRORS=ON \
+            -DDPR_ENABLE_OPENMP=ON \
+            -DDPR_BUILD_BENCHMARKS=ON
+
+      - name: Build benchmark target
+        run: cmake --build build-benchmark --parallel --target pricing_benchmark
+
+      - name: Run benchmark smoke workload
+        run: |
+          ./build-benchmark/pricing_benchmark 200000 20000 16 3 2 \
+            | tee benchmark-smoke.txt
+
+      - name: Validate benchmark output
+        run: |
+          python3 benchmarks/check_benchmark_output.py \
+            benchmark-smoke.txt \
+            --min-speedup 0.25 \
+            --max-seconds 30 \
+            --min-threads 2
+
+      - name: Upload benchmark evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-smoke-${{ github.sha }}
+          path: benchmark-smoke.txt
+          if-no-files-found: error
+          retention-days: 14
+
   sanitizers:
     name: ubuntu-sanitizers
     runs-on: ubuntu-latest
