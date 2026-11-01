@@ -57,6 +57,8 @@ foreach(
         asian_zero_volatility
         barrier_immediate_knockout
         barrier_deterministic_crossing
+        extreme_deterministic_discounting
+        single_observation_and_zero_rate
         path_dependent_antithetic
         control_variate_rejected
         control_variate_rejected_for_deterministic_contract

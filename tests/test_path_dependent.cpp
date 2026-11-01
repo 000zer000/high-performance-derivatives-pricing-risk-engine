@@ -146,6 +146,66 @@ bool test_barrier_deterministic_crossing()
     return expect_near(result.price, 0.0, 0.0, "deterministic crossing");
 }
 
+bool test_extreme_deterministic_discounting()
+{
+    auto base = underlying();
+    base.volatility = 0.0;
+    base.risk_free_rate = 1000.0;
+    const auto asian = derivatives::price_asian_monte_carlo(
+        {.underlying = base, .monitoring_steps = 12U}, {.paths = 100U}
+    );
+    const auto barrier = derivatives::price_down_and_out_monte_carlo(
+        {.underlying = base, .barrier = 80.0, .monitoring_steps = 12U},
+        {.paths = 100U}
+    );
+    // At this rate all earlier discounted observations are negligible;
+    // the terminal observation contributes S0/N, while K*exp(-rT) vanishes.
+    bool passed = expect_near(asian.price, 100.0 / 12.0, 1e-12,
+                              "stable extreme-rate Asian call")
+        && expect_near(barrier.price, 100.0, 1e-12,
+                       "stable extreme-rate barrier call")
+        && expect_near(asian.standard_error, 0.0, 0.0, "deterministic SE");
+    base.type = derivatives::OptionType::Put;
+    passed = expect_near(derivatives::price_asian_monte_carlo(
+        {.underlying = base, .monitoring_steps = 12U}, {.paths = 100U}
+    ).price, 0.0, 0.0, "extreme-rate Asian put") && passed;
+    base.risk_free_rate = -1000.0;
+    passed = expect_throws_containing<std::overflow_error>([&base] {
+        static_cast<void>(derivatives::price_asian_monte_carlo(
+            {.underlying = base, .monitoring_steps = 12U}, {.paths = 100U}
+        ));
+    }, "finite numeric range", "unrepresentable discounted Asian put") && passed;
+    // A crossed barrier remains exactly worthless, even when discounting
+    // an unknocked put would exceed the representable double range.
+    return expect_near(derivatives::price_down_and_out_monte_carlo(
+        {.underlying = base, .barrier = 80.0, .monitoring_steps = 12U},
+        {.paths = 100U}
+    ).price, 0.0, 0.0, "extreme-rate deterministic knockout") && passed;
+}
+
+bool test_single_observation_and_zero_rate()
+{
+    auto base = underlying();
+    base.volatility = 0.0;
+    bool passed = true;
+    for (const auto type : {derivatives::OptionType::Call, derivatives::OptionType::Put}) {
+        base.type = type;
+        for (const double rate : {-0.10, 0.0, 0.05}) {
+            base.risk_free_rate = rate;
+            const double expected = std::max(
+                type == derivatives::OptionType::Call
+                    ? base.spot - base.strike * std::exp(-rate)
+                    : base.strike * std::exp(-rate) - base.spot,
+                0.0
+            );
+            passed = expect_near(derivatives::price_asian_monte_carlo(
+                {.underlying = base, .monitoring_steps = 1U}, {.paths = 100U}
+            ).price, expected, 1e-12, "one-observation Asian equals European") && passed;
+        }
+    }
+    return passed;
+}
+
 bool test_path_dependent_antithetic()
 {
     const derivatives::AsianOption option{
@@ -236,6 +296,12 @@ int main(int argc, char* argv[])
     }
     if (name == "barrier_deterministic_crossing") {
         return test_barrier_deterministic_crossing() ? 0 : 1;
+    }
+    if (name == "extreme_deterministic_discounting") {
+        return test_extreme_deterministic_discounting() ? 0 : 1;
+    }
+    if (name == "single_observation_and_zero_rate") {
+        return test_single_observation_and_zero_rate() ? 0 : 1;
     }
     if (name == "path_dependent_antithetic") {
         return test_path_dependent_antithetic() ? 0 : 1;

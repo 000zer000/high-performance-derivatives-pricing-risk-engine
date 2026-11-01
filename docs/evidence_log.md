@@ -101,3 +101,23 @@ model,” “cross-platform bitwise reproducibility,” or an unqualified speedu
   pybind11, tests, and benchmarks; built all targets; passed 61/61 tests;
   reproduced analytical Greeks, a control-variate eight-thread price, and the
   Python analytical price; and remained Git-clean.
+
+
+## 1 November 2026 — deterministic numerical boundary correction
+
+An audit reproduced successful CLI exit with NaN price/interval for Asian and
+down-and-out calls at S=K=100, rate=1000, volatility=0, maturity=1, 12 steps.
+This deliberately unrealistic stress input exposed intermediate overflow and
+underflow, not an error in typical-rate benchmarks. Discounting individual Asian
+observations before averaging now gives 8.333333333333334. A monotone-path barrier
+check in log space followed by the existing zero-volatility European valuation
+gives 100. Both have zero sampling error. Finite inputs can still exceed the
+supported numeric range: an unrepresentable discounted Asian put raises an
+explicit overflow error instead of returning NaN or clamping it to zero.
+
+Verification on AppleClang 15 / Python 3.12.14: 61/61 tests in the serial C++
+release build and 63/63 with OpenMP and pybind11 3.0.4, including Python tests and
+serial/parallel equality. New regressions include extreme-rate call/put behavior,
+barrier knockout, zero rate and one-observation equivalence. Existing analytical,
+variance-reduction and ordinary-rate tests pass. Historical performance results
+were not regenerated or relabelled as new measurements.

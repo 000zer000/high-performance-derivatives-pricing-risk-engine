@@ -175,6 +175,11 @@ MonteCarloResult deterministic_result(
     const MonteCarloConfig& config
 )
 {
+    if (!std::isfinite(price) || price < 0.0) {
+        throw std::overflow_error(
+            "deterministic price is outside the supported finite numeric range"
+        );
+    }
     return {
         .price = price,
         .standard_error = 0.0,
@@ -344,22 +349,26 @@ double deterministic_asian_price(const AsianOption& option)
     if (underlying.time_to_maturity == 0.0) {
         return payoff(underlying.type, underlying.spot, underlying.strike);
     }
-    const double time_step = underlying.time_to_maturity
-        / static_cast<double>(option.monitoring_steps);
-    double sum = 0.0;
-    for (std::uint32_t step = 1U; step <= option.monitoring_steps; ++step) {
-        sum += underlying.spot
-            * std::exp(
-                underlying.risk_free_rate * time_step
-                * static_cast<double>(step)
-            );
+    // Discount each observation before averaging: D(T)*S(t) = S(0)*D(T-t).
+    // Growing terminal prices can overflow even when the discounted payoff is
+    // small and finite. Never form the old zero-discount times infinite-price.
+    const double steps = static_cast<double>(option.monitoring_steps);
+    double discounted_average = 0.0;
+    for (std::uint32_t step = 0U; step < option.monitoring_steps; ++step) {
+        const double remaining_fraction =
+            static_cast<double>(option.monitoring_steps - 1U - step) / steps;
+        discounted_average += (underlying.spot / steps)
+            * std::exp(-underlying.risk_free_rate
+                       * (underlying.time_to_maturity * remaining_fraction));
     }
-    const double average =
-        sum / static_cast<double>(option.monitoring_steps);
-    return std::exp(
-               -underlying.risk_free_rate * underlying.time_to_maturity
-           )
-        * payoff(underlying.type, average, underlying.strike);
+    const double discounted_strike = underlying.strike
+        * std::exp(-underlying.risk_free_rate * underlying.time_to_maturity);
+    if (!std::isfinite(discounted_average) || !std::isfinite(discounted_strike)) {
+        throw std::overflow_error(
+            "deterministic Asian inputs exceed the supported finite numeric range"
+        );
+    }
+    return payoff(underlying.type, discounted_average, discounted_strike);
 }
 
 double deterministic_down_and_out_price(const DownAndOutOption& option)
@@ -371,19 +380,14 @@ double deterministic_down_and_out_price(const DownAndOutOption& option)
     if (underlying.time_to_maturity == 0.0) {
         return payoff(underlying.type, underlying.spot, underlying.strike);
     }
-    const double time_step = underlying.time_to_maturity
-        / static_cast<double>(option.monitoring_steps);
-    double simulated_spot = underlying.spot;
-    for (std::uint32_t step = 0U; step < option.monitoring_steps; ++step) {
-        simulated_spot *= std::exp(underlying.risk_free_rate * time_step);
-        if (simulated_spot <= option.barrier) {
-            return 0.0;
-        }
+    // With zero volatility the path is monotone. For a negative rate its
+    // minimum is the final monitored observation; test crossing in log space.
+    if (underlying.risk_free_rate < 0.0
+        && std::log(underlying.spot) - std::log(option.barrier)
+               + underlying.risk_free_rate * underlying.time_to_maturity <= 0.0) {
+        return 0.0;
     }
-    return std::exp(
-               -underlying.risk_free_rate * underlying.time_to_maturity
-           )
-        * payoff(underlying.type, simulated_spot, underlying.strike);
+    return black_scholes_price(underlying);
 }
 
 template <typename PayoffEvaluator>
